@@ -1,0 +1,12 @@
+{
+  "name": "powercast-ai",
+  "version": "1.0.0",
+  "description": "Intelligent Grid Forecasting & Optimization Platform",
+  "private": true,
+  "workspaces": ["frontend"],
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && uvicorn app.main:app --reload --port 8000",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\""
+  }
+}
