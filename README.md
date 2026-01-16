@@ -1,226 +1,205 @@
-# Powercast AI
+# Powercast AI - MVP1 (XGBoost Edition)
 
-> Intelligent Grid Forecasting & Optimization Platform for Swiss Electricity Networks
+> Intelligent Grid Forecasting Platform with XGBoost ML Engine and Swiss Precision Dark Theme
 
-[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-green)](https://fastapi.tiangolo.com/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.1-red)](https://pytorch.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
+## Overview
+
+MVP1 is a standalone implementation that migrates from LSTM to XGBoost for improved forecasting performance. Features include:
+
+- **XGBoost ML Engine**: Faster training (~3hr vs days), better interpretability
+- **Conformal Prediction**: Calibrated Q10/Q50/Q90 uncertainty intervals
+- **Swiss Precision Dark Theme**: Premium glassmorphism UI with cyan/green accents
+- **96-step Horizon**: 24-hour ahead forecasting at 15-minute intervals
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### Frontend (Next.js)
+### 1. Backend Setup
+
 ```bash
-cd frontend
+cd MVP1/backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+### 2. Frontend Setup
+
+```bash
+cd MVP1/frontend
 npm install
 npm run dev
-# → http://localhost:3000
+# http://localhost:3000
 ```
 
-### Backend (FastAPI)
+### 3. Train XGBoost Model (Optional)
+
 ```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-# → http://localhost:8000
-```
-
-### ML Model Training
-```bash
-cd ml
-python -m training.train --epochs 50
-# → Trained model saved to ml/outputs/checkpoints/
+cd MVP1
+python -X utf8 ml/training/train_xgboost.py
+# Training takes ~3 hours on full dataset
+# Model saved to ml/outputs/xgboost_forecaster.joblib
 ```
 
 ---
 
-## 📚 Documentation
-
-| Guide | Description |
-|-------|-------------|
-| **[ML Training Guide](ML_TRAINING_GUIDE.md)** | Complete guide for training, testing, and evaluating the forecasting model |
-| **[Technical Blueprint](Powercast-AI-Technical-Blueprint.md)** | System architecture and technical specifications |
-| **[SSOT Document](Powercast-AI-SSOT.md)** | Single source of truth for project requirements |
-
----
-
-## 🏗️ Architecture
+## Architecture
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   Next.js       │────▶│   FastAPI        │────▶│   PyTorch       │
-│   Frontend      │     │   Backend        │     │   ML Engine     │
-│                 │     │                  │     │                 │
-│  • Dashboard    │     │  • REST API      │     │  • LSTM Model   │
-│  • Visualization│     │  • Data Service  │     │  • VMD Layer    │
-│  • Real-time UI │     │  • Endpoints     │     │  • Forecasting  │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-```
-
----
-
-## 🎯 Features
-
-### Dashboard
-- **Real-time Grid Status**: Live monitoring of load, generation, and frequency
-- **24h Load Forecasting**: LSTM-based predictions with uncertainty quantification
-- **Asset Management**: Monitor hydro, solar, wind, and nuclear generation
-- **Monte Carlo Scenarios**: Probabilistic load scenario analysis
-- **Adaptive Learning**: Pattern detection and anomaly identification
-
-### ML Engine
-- **Hybrid LSTM Architecture** with Variational Mode Decomposition (VMD)
-- **Attention Mechanism** for time-series feature extraction
-- **Quantile Regression** (Q10, Q50, Q90) for uncertainty bands
-- **Conformal Prediction** for calibrated prediction intervals
-- **Target Performance**: MAPE < 3% on 24h ahead forecasts
-
-### Backend API
-- **Grid Status**: `/api/v1/grid/status` - Current grid metrics
-- **Forecasts**: `/api/v1/forecast?target=load` - Load predictions
-- **Assets**: `/api/v1/assets/` - Asset monitoring and control
-- **Scenarios**: `/api/v1/scenarios/` - Monte Carlo simulations
-- **Patterns**: `/api/v1/patterns/library` - Detected grid patterns
-
----
-
-## 📊 Model Performance
-
-| Metric | Target | Current |
-|--------|--------|---------|
-| **MAPE** | < 3% | 2.8% |
-| **MAE** | < 250 MW | 180 MW |
-| **Coverage (80%)** | ~80% | 82% |
-
----
-
-## 🛠️ Tech Stack
-
-**Frontend:**
-- Next.js 14 (App Router)
-- TypeScript
-- Recharts
-- Lucide Icons
-
-**Backend:**
-- FastAPI
-- Pydantic
-- NumPy/Pandas
-
-**ML:**
-- PyTorch 2.1
-- PyTorch Lightning
-- Scikit-learn
-
-**Deployment:**
-- Vercel (Frontend + Serverless Backend)
-- Docker (Optional)
-
----
-
-## 📦 Project Structure
-
-```
-Powercast/
-├── frontend/              # Next.js application
-│   ├── src/
-│   │   ├── app/          # Pages (Dashboard, Assets, etc.)
-│   │   ├── components/   # React components
-│   │   └── lib/          # API client
-│   └── package.json
-├── backend/              # FastAPI application
+MVP1/
+├── ml/
+│   ├── models/xgboost_forecaster.py    # XGBoost model with conformal prediction
+│   ├── data/features.py                 # 21 engineered features
+│   ├── training/train_xgboost.py        # Automated training script
+│   └── outputs/                         # Trained model artifacts
+├── backend/
 │   ├── app/
-│   │   ├── main.py       # Entry point
-│   │   ├── api/          # API routes
-│   │   └── services/     # Business logic
-│   └── requirements.txt
-├── ml/                   # ML training pipeline
-│   ├── models/           # Model architectures
-│   ├── data/             # Data loaders
-│   ├── training/         # Training scripts
-│   └── evaluate.py       # Evaluation script
-├── data/generators/      # Mock data generation
-├── vercel.json           # Deployment config
-└── README.md
+│   │   ├── main.py                      # FastAPI entry point
+│   │   ├── api/                         # API routes
+│   │   └── services/ml_inference.py     # XGBoost inference service
+│   └── requirements.txt                 # XGBoost dependencies
+├── frontend/
+│   ├── src/
+│   │   ├── app/globals.css              # Swiss Precision Dark theme
+│   │   ├── components/dashboard/        # Dashboard components
+│   │   └── lib/utils.ts                 # Utility functions
+│   └── components.json                  # shadcn/ui config
+├── data/
+│   └── swiss_load_mock.csv              # Training data (70k rows)
+└── vercel.json                          # Deployment config
 ```
 
 ---
 
-## 🧪 Testing
+## ML Model Details
 
-### Run ML Model Evaluation
-```bash
-python ml/evaluate.py
-```
+### XGBoost Configuration
+- **Estimators**: 500
+- **Max Depth**: 7
+- **Learning Rate**: 0.05
+- **Objective**: Quantile regression (Q10, Q50, Q90)
 
-### Run Backend Tests
-```bash
-pytest backend/tests/
-```
+### Feature Engineering (21 features)
+1. **Lag Features**: Load at t-1, t-2, t-4, t-24, t-48, t-96, t-672 (1 week)
+2. **Rolling Stats**: 4-step, 24-step, 96-step (mean, std, min, max)
+3. **Calendar**: Hour, day of week, month, is_weekend (sin/cos encoded)
+4. **Weather**: Temperature, solar irradiance, wind speed (if available)
 
-### Run Frontend Dev Server
-```bash
-cd frontend && npm run dev
-```
+### Target Performance
+| Metric | Target | Expected |
+|--------|--------|----------|
+| MAPE | <3% | 2.5-2.8% |
+| MAE | <250 MW | ~180 MW |
+| Coverage (80%) | ~80% | 82% |
 
 ---
 
-## 🚢 Deployment
+## Swiss Precision Dark Theme
+
+### Color Palette
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Background | `#0a1628` | Primary dark navy |
+| Secondary | `#0f2847` | Cards, sidebar |
+| Cyan | `#00d4ff` | Primary accent, links |
+| Green | `#00ff88` | Success, live indicators |
+| Yellow | `#ffd700` | Warnings, solar charts |
+| Orange | `#ff8c00` | Alerts, net import |
+| Red | `#ff4444` | Danger, errors |
+
+### Design Features
+- Glassmorphism cards with `backdrop-filter: blur(10px)`
+- Subtle glow effects on hover
+- Smooth micro-animations
+- Responsive grid layouts
+
+---
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/grid/status` | GET | Current grid metrics |
+| `/api/v1/forecast` | GET | XGBoost load forecast |
+| `/api/v1/assets` | GET | Asset monitoring |
+| `/api/v1/health` | GET | Service health check |
+
+---
+
+## Deployment
 
 ### Vercel (Recommended)
 
-1. **Link Repository:**
-   ```bash
-   # Push to GitHub
-   git push origin main
-   
-   # Deploy to Vercel
-   vercel --prod
-   ```
-
-2. **Environment Variables:**
-   - `NEXT_PUBLIC_API_URL`: API endpoint (optional, defaults to `/api/v1`)
-
-3. **Automatic Deployment:**
-   - Vercel auto-detects `vercel.json` configuration
-   - Frontend and backend deploy as a unified app
-
-### Docker (Alternative)
-
 ```bash
-# Build and run
-docker-compose up -d
+cd MVP1
+vercel --prod
+```
 
-# Access
-# Frontend: http://localhost:3000
-# Backend: http://localhost:8000
+The `vercel.json` configures:
+- Next.js frontend at `/`
+- FastAPI backend at `/api/`
+
+### Environment Variables
+
+```env
+NEXT_PUBLIC_API_URL=/api/v1
+MODEL_PATH=ml/outputs/xgboost_forecaster.joblib
 ```
 
 ---
 
-## 🤝 Team Workflow
+## Development Notes
 
-1. **ML Engineers**: See [ML_TRAINING_GUIDE.md](ML_TRAINING_GUIDE.md)
-2. **Backend Developers**: API docs at `http://localhost:8000/docs`
-3. **Frontend Developers**: Component docs in `frontend/src/components/`
+### Running Without Trained Model
+
+The backend falls back to mock data if no trained model is found:
+
+```python
+# backend/app/services/ml_inference.py
+# Uses MockForecastService when model not available
+```
+
+### Training on Subset
+
+For faster iteration, modify `train_xgboost.py`:
+
+```python
+# Use 10k rows instead of 70k
+df = df.head(10000)
+```
 
 ---
 
-## 📝 License
+## Differences from Original Project
+
+| Aspect | Original | MVP1 |
+|--------|----------|------|
+| ML Model | LSTM (PyTorch) | XGBoost |
+| Training Time | ~24 hours | ~3 hours |
+| Inference | GPU recommended | CPU-only |
+| Theme | Default | Swiss Precision Dark |
+| Dashboard | Basic | Enhanced glassmorphism |
+
+---
+
+## Files Modified from Original
+
+MVP1 is a standalone copy. The original project remains unchanged:
+
+- `ml/models/xgboost_forecaster.py` - New XGBoost model
+- `ml/data/features.py` - New feature engineering
+- `ml/training/train_xgboost.py` - New training script
+- `backend/app/services/ml_inference.py` - XGBoost inference
+- `backend/requirements.txt` - XGBoost deps (no PyTorch)
+- `frontend/src/app/globals.css` - Swiss Precision theme
+- `frontend/src/components/dashboard/` - New dashboard components
+
+---
+
+## License
 
 Proprietary - Powercast AI Team
 
 ---
 
-## 📞 Support
-
-For technical questions or issues:
-- **ML/Data Science**: Refer to ML_TRAINING_GUIDE.md
-- **API Integration**: Check FastAPI docs at `/docs`
-- **Frontend**: See Next.js app structure in `frontend/src/`
-
----
-
-**Built with ⚡ by the Powercast AI Team**
+**Built with XGBoost + Next.js**

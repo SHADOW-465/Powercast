@@ -1,21 +1,23 @@
 # dependencies
-/node_modules
-/.pnp
+node_modules/
+.pnp/
 .pnp.js
 
 # testing
-/coverage
+coverage/
 
 # next.js
-/.next/
-/out/
+.next/
+out/
 
 # production
-/build
+build/
+dist/
 
 # misc
 .DS_Store
 *.pem
+*.local
 
 # debug
 npm-debug.log*
@@ -24,6 +26,7 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env
 
 # vercel
 .vercel
@@ -37,17 +40,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 venv/
-.env
 .venv
 env/
 ENV/
-build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
-
 parts/
 sdist/
 var/
@@ -58,11 +57,12 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# ML outputs
-ml/outputs/
+# ML outputs (model tracked via Git LFS)
+# ml/outputs/  # Model included for deployment
 *.ckpt
 *.pkl
 *.log
+output.txt
 
 # Brain / Artifacts
 .gemini/

@@ -1,0 +1,36 @@
+{
+  "model_type": "xgboost_fast_tuned",
+  "output_horizon": 96,
+  "best_params": {
+    "max_depth": 7,
+    "learning_rate": 0.06115647854725717,
+    "subsample": 0.8227804462074217,
+    "colsample_bytree": 0.9187896169923238,
+    "min_child_weight": 5,
+    "gamma": 0.01647307917167837,
+    "reg_alpha": 0.0018471116471417658,
+    "reg_lambda": 0.6563423403765932,
+    "n_estimators": 500
+  },
+  "tuning": {
+    "n_trials": 50,
+    "best_cv_mape": 1.9093,
+    "tuning_time_minutes": 1.23
+  },
+  "metrics": {
+    "test_mape": 0.9108,
+    "test_mae": 69.16,
+    "coverage_90": 91.04,
+    "inference_time_ms": 54.21
+  },
+  "horizon_mape": {
+    "0.2h": 0.9252,
+    "3.0h": 0.9094,
+    "6.0h": 0.8892,
+    "12.0h": 0.8964,
+    "18.0h": 0.9576,
+    "24.0h": 0.9485
+  },
+  "training_time_seconds": 386.37,
+  "trained_at": "2026-01-16T10:21:03.095152"
+}

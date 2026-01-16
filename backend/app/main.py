@@ -2,6 +2,7 @@
 Powercast AI - FastAPI Backend
 Main application entry point
 """
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -14,6 +15,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.api import forecast, grid, assets, scenarios, patterns
 from app.core.config import settings
 from app.services.data_service import DataServiceSingleton
+from app.services.ml_inference import get_ml_service
 
 
 @asynccontextmanager
@@ -22,7 +24,10 @@ async def lifespan(app: FastAPI):
     # Startup
     print("Starting Powercast AI Backend...")
     DataServiceSingleton.initialize()
-    print("Data service initialized")
+    ml_service = get_ml_service()
+    health = ml_service.health_check()
+    print(f"Data service initialized")
+    print(f"ML Service: {health['status']} (Model loaded: {health['model_loaded']})")
     yield
     # Shutdown
     print("Shutting down Powercast AI Backend...")
@@ -32,7 +37,7 @@ app = FastAPI(
     title="Powercast AI",
     description="Intelligent Grid Forecasting & Optimization Platform",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # CORS middleware
@@ -54,18 +59,17 @@ app.include_router(patterns.router, prefix="/api/v1/patterns", tags=["Patterns"]
 
 @app.get("/")
 async def root():
-    return {
-        "name": "Powercast AI",
-        "version": "1.0.0",
-        "status": "operational"
-    }
+    return {"name": "Powercast AI", "version": "1.0.0", "status": "operational"}
 
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy"}
+    ml_service = get_ml_service()
+    health_check = ml_service.health_check()
+    return {"status": "healthy", "ml_service": health_check}
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
