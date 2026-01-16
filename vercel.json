@@ -1,19 +1,6 @@
 {
-    "version": 2,
-    "rewrites": [
-        {
-            "source": "/api/(.*)",
-            "destination": "/backend/app/main.py"
-        }
-    ],
-    "builds": [
-        {
-            "src": "frontend/package.json",
-            "use": "@vercel/next"
-        },
-        {
-            "src": "backend/app/main.py",
-            "use": "@vercel/python"
-        }
-    ]
+    "buildCommand": "cd frontend && npm install && npm run build",
+    "outputDirectory": "frontend/.next",
+    "framework": "nextjs",
+    "installCommand": "cd frontend && npm install"
 }
