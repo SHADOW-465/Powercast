@@ -270,7 +270,7 @@ export default function ForecastsPage() {
                             />
 
                             {/* Monte Carlo scenario lines */}
-                            {showScenarios && forecastData[0]?.scenarios.map((_, idx) => (
+                            {showScenarios && forecastData[0]?.scenarios.map((_: number, idx: number) => (
                                 <Line
                                     key={idx}
                                     type="monotone"
