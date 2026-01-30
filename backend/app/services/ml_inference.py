@@ -1,87 +1,74 @@
 """
 Powercast AI - ML Inference Service (XGBoost)
-Lightweight inference service that runs directly on Vercel serverless
+Multi-region inference service with context-aware feature engineering.
+
+Features:
+- Region-aware model loading via ModelRegistry
+- Timezone-aware feature engineering
+- Conformal prediction intervals
+- Thread-safe predictions
 """
 
 import numpy as np
-import joblib
 import json
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 import logging
+from zoneinfo import ZoneInfo
+
+from app.services.model_registry import (
+    get_model_registry,
+    ModelRegistry,
+    REGION_TIMEZONES,
+    REGION_PEAK_HOURS,
+)
 
 logger = logging.getLogger(__name__)
-
-# Model artifacts paths
-ML_DIR = Path(__file__).parent.parent.parent.parent / "ml" / "outputs"
-MODEL_PATH = ML_DIR / "xgboost_model.joblib"
-CONFIG_PATH = ML_DIR / "training_config.json"
 
 
 class MLInferenceService:
     """
-    Singleton ML inference service for XGBoost forecasting.
+    Multi-region ML inference service for XGBoost forecasting.
 
     Features:
-    - Fast loading (~50ms)
-    - Lightweight memory footprint (<100MB)
-    - Thread-safe predictions
+    - Region-aware model loading
+    - Timezone-aligned feature engineering
     - Conformal prediction intervals
+    - Thread-safe predictions
     """
 
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
-
-    def __init__(self):
-        if self._initialized:
-            return
-
-        self.model_data = None
-        self.config: Optional[Dict] = None
-        self.model_loaded = False
-
-        self._load_model()
-        self._initialized = True
-
-    def _load_model(self):
-        """Load XGBoost model artifacts"""
-        logger.info("Loading XGBoost model...")
-
-        try:
-            # Load training config
-            if CONFIG_PATH.exists():
-                with open(CONFIG_PATH) as f:
-                    self.config = json.load(f)
-                logger.info(
-                    f"Config loaded: Test MAPE = {self.config.get('test_mape', 'N/A')}%"
-                )
-            else:
-                self.config = {
-                    "output_horizon": 96,
-                    "n_features": 21,
-                    "model_type": "xgboost",
-                }
-                logger.warning("Config not found, using defaults")
-
-            # Load model
-            if MODEL_PATH.exists():
-                self.model_data = joblib.load(MODEL_PATH)
-                self.model_loaded = True
-                logger.info("✓ XGBoost model loaded successfully")
-            else:
-                logger.error(f"Model not found at {MODEL_PATH}")
-                self.model_loaded = False
-
-        except Exception as e:
-            logger.error(f"Failed to load model: {e}")
-            self.model_loaded = False
-
+    def __init__(self, region_code: str = "SWISS_GRID"):
+        """
+        Initialize inference service for a specific region.
+        
+        Args:
+            region_code: Region code (e.g., 'SWISS_GRID', 'SOUTH_TN_TNEB')
+        """
+        self.region_code = region_code
+        self.registry = get_model_registry()
+        
+        # Get region-specific config
+        self.timezone = self.registry.get_timezone(region_code)
+        self.peak_hours = self.registry.get_peak_hours(region_code)
+        
+        # Lazy model loading
+        self._model_data: Optional[Dict[str, Any]] = None
+        self._model_loaded = False
+    
+    @property
+    def model_data(self) -> Optional[Dict[str, Any]]:
+        """Lazy load model on first access"""
+        if not self._model_loaded:
+            self._model_data = self.registry.get_model(self.region_code)
+            self._model_loaded = True
+        return self._model_data
+    
+    @property
+    def model_loaded(self) -> bool:
+        """Check if model is available"""
+        return self.model_data is not None
+    
     def predict(
         self,
         features: np.ndarray,
@@ -100,20 +87,18 @@ class MLInferenceService:
             Dictionary with predictions, timestamps, and metadata
         """
         if not self.model_loaded:
-            return self._mock_prediction(plant_type)
+            return self._model_not_found_response()
 
         try:
             # Ensure features is 2D
             if features.ndim == 1:
                 features = features.reshape(1, -1)
 
-            # Extract model components (NEW FORMAT from Colab script)
+            # Extract model components
             models = self.model_data["models"]  # List of 96 XGBoost models
             feature_means = self.model_data["feature_means"]
             feature_stds = self.model_data["feature_stds"]
-            conformal_margins = self.model_data[
-                "conformal_margins"
-            ]  # Dict: q80, q90, q95
+            conformal_margins = self.model_data.get("conformal_margins", {})
 
             # Normalize features
             X_norm = (features - feature_means) / feature_stds
@@ -122,16 +107,17 @@ class MLInferenceService:
             point_forecast = np.column_stack([m.predict(X_norm) for m in models])[0]
 
             # Apply conformal intervals (90% confidence by default)
-            if include_intervals:
-                margin_q90 = conformal_margins["q90"]
+            if include_intervals and conformal_margins:
+                margin_q90 = conformal_margins.get("q90", point_forecast * 0.1)
                 q10 = point_forecast - margin_q90
                 q90 = point_forecast + margin_q90
             else:
-                q10 = point_forecast
-                q90 = point_forecast
+                q10 = point_forecast * 0.9
+                q90 = point_forecast * 1.1
 
-            # Generate timestamps (15-minute intervals)
-            now = datetime.now()
+            # Generate timestamps in local timezone
+            tz = ZoneInfo(self.timezone)
+            now = datetime.now(tz)
             timestamps = [
                 (now + timedelta(minutes=15 * i)).isoformat()
                 for i in range(len(point_forecast))
@@ -149,32 +135,42 @@ class MLInferenceService:
                     }
                 )
 
+            # Get model metadata
+            metadata_obj = self.registry.get_metadata(self.region_code)
+            metrics = metadata_obj.metrics if metadata_obj else {}
+
             return {
                 "predictions": predictions,
                 "metadata": {
                     "model_type": "xgboost",
+                    "region_code": self.region_code,
+                    "timezone": self.timezone,
                     "horizon_hours": 24,
                     "interval_minutes": 15,
                     "plant_type": plant_type,
                     "generated_at": now.isoformat(),
                     "confidence": 0.90,
-                    "test_mape": self.config.get("metrics", {}).get("test_mape", None),
+                    "test_mape": metrics.get("test_mape"),
+                    "trained_at": metadata_obj.trained_at.isoformat() if metadata_obj and metadata_obj.trained_at else None,
                 },
             }
 
         except Exception as e:
-            logger.error(f"Prediction error: {e}")
-            return self._mock_prediction(plant_type)
+            logger.error(f"Prediction error for {self.region_code}: {e}")
+            raise RuntimeError(f"Model prediction failed for {self.region_code}: {e}")
 
     def predict_from_history(
-        self, load_history: List[float], forecast_start: Optional[datetime] = None
+        self, 
+        load_history: List[float], 
+        forecast_start: Optional[datetime] = None
     ) -> Dict:
         """
         Generate forecast from historical load data.
 
         Args:
             load_history: Recent load values (at least 672 values = 1 week)
-            forecast_start: Timestamp for forecast start (default: now)
+            forecast_start: Timestamp for forecast start (default: now in UTC)
+                           Will be converted to local timezone for feature engineering.
 
         Returns:
             Forecast dictionary
@@ -184,36 +180,41 @@ class MLInferenceService:
                 f"Need at least 672 historical values, got {len(load_history)}"
             )
 
-        # Use inference feature creation from ML module
         try:
             import pandas as pd
-            import numpy as np
 
-            # Convert to pandas Series with datetime index
+            # Use UTC as standard, feature engineering will convert to local
             if forecast_start is None:
-                forecast_start = datetime.now()
+                # Use current time in UTC (will be converted to local in features)
+                forecast_start = datetime.now(ZoneInfo('UTC'))
+            elif forecast_start.tzinfo is None:
+                # Naive timestamp - assume it's UTC
+                forecast_start = forecast_start.replace(tzinfo=ZoneInfo('UTC'))
+            # If already timezone-aware, use as-is (feature engineering will convert)
 
             timestamps = [
                 forecast_start - timedelta(minutes=15 * (672 - i)) for i in range(672)
             ]
             load_series = pd.Series(load_history[-672:], index=timestamps)
 
-            # Create features (21 features)
+            # Create features with timezone-aware engineering
             features = self._create_features_from_history(load_series, forecast_start)
 
-            # Predict
             return self.predict(features, include_intervals=True)
 
         except Exception as e:
             logger.error(f"Error creating features from history: {e}")
-            return self._mock_prediction("mixed")
+            raise RuntimeError(f"Feature engineering failed: {e}")
 
     def _create_features_from_history(
-        self, load_series: pd.Series, forecast_start: datetime
+        self, load_series, forecast_start: datetime
     ) -> np.ndarray:
         """
-        Create feature vector from historical load data for inference.
-        Matches the feature engineering in training script.
+        Create feature vector from historical load data.
+        Timezone-aware feature engineering for local grid behavior.
+        
+        CRITICAL: Time is CONVERTED to local timezone, not just labeled!
+        Example: 18:30 UTC → 00:00 IST (midnight), not 18:30 IST
         """
         features = []
 
@@ -221,120 +222,181 @@ class MLInferenceService:
         recent_load = load_series.values
 
         # Lags (1h=4, 6h=24, 24h=96, 168h=672 steps)
-        features.extend(
-            [
-                recent_load[-4],
-                recent_load[-24],
-                recent_load[-96],
-                recent_load[-672],
-            ]
-        )
+        features.extend([
+            recent_load[-4],
+            recent_load[-24],
+            recent_load[-96],
+            recent_load[-672],
+        ])
 
         # Rolling statistics (last 24h and 168h)
         w24 = recent_load[-96:]
         w168 = recent_load[-672:]
-        features.extend(
-            [
-                w24.mean(),
-                w24.std(),
-                w168.mean(),
-                w168.std(),
-            ]
-        )
+        features.extend([
+            w24.mean(),
+            w24.std(),
+            w168.mean(),
+            w168.std(),
+        ])
 
-        # Calendar features from forecast start
-        hour = forecast_start.hour + forecast_start.minute / 60
-        features.extend(
-            [
-                np.sin(2 * np.pi * hour / 24),
-                np.cos(2 * np.pi * hour / 24),
-                np.sin(2 * np.pi * forecast_start.weekday() / 7),
-                np.cos(2 * np.pi * forecast_start.weekday() / 7),
-                np.sin(2 * np.pi * forecast_start.month / 12),
-                np.cos(2 * np.pi * forecast_start.month / 12),
-                1.0 if forecast_start.weekday() >= 5 else 0.0,  # is_weekend
-                1.0 if 7 <= forecast_start.hour <= 21 else 0.0,  # is_peak_hour
-            ]
-        )
+        # Calendar features - TIMEZONE CONVERSION (not just labeling!)
+        # CRITICAL: We must CONVERT the time, not just label it
+        local_tz = ZoneInfo(self.timezone)
+        
+        if forecast_start.tzinfo is None:
+            # Naive timestamp - assume it's UTC, then convert to local
+            utc_dt = forecast_start.replace(tzinfo=ZoneInfo('UTC'))
+            local_dt = utc_dt.astimezone(local_tz)
+        elif str(forecast_start.tzinfo) == self.timezone:
+            # Already in correct timezone
+            local_dt = forecast_start
+        else:
+            # Different timezone - convert to local
+            local_dt = forecast_start.astimezone(local_tz)
+        
+        # Now extract LOCAL hour (18:30 UTC → 00:00 IST for India)
+        hour = local_dt.hour + local_dt.minute / 60
+        day_of_week = local_dt.weekday()
+        month = local_dt.month
+        
+        features.extend([
+            np.sin(2 * np.pi * hour / 24),
+            np.cos(2 * np.pi * hour / 24),
+            np.sin(2 * np.pi * day_of_week / 7),
+            np.cos(2 * np.pi * day_of_week / 7),
+            np.sin(2 * np.pi * month / 12),
+            np.cos(2 * np.pi * month / 12),
+            1.0 if day_of_week >= 5 else 0.0,  # is_weekend
+            1.0 if local_dt.hour in self.peak_hours else 0.0,  # is_peak_hour (region-specific!)
+        ])
 
         # Weather defaults (temperature, humidity, cloud_cover, wind_speed, temp_x_humidity)
         features.extend([15.0, 50.0, 30.0, 5.0, 7.5])
 
         return np.array(features)
 
+    def _model_not_found_response(self) -> Dict:
+        """Response when model is not found for region"""
+        return {
+            "status": "training_required",
+            "region_code": self.region_code,
+            "message": f"No model found for region '{self.region_code}'. Training required.",
+            "training_endpoint": "/api/train",
+            "predictions": None,
+            "metadata": {
+                "model_type": None,
+                "region_code": self.region_code,
+                "timezone": self.timezone,
+                "training_required": True,
+                "generated_at": datetime.now(ZoneInfo(self.timezone)).isoformat(),
+            },
+        }
+
     def _mock_prediction(self, plant_type: str = "mixed") -> Dict:
         """
-        Fallback mock prediction when model isn't loaded.
-        Generates realistic Swiss grid patterns.
+        Fallback mock prediction when model prediction fails.
+        Generates realistic patterns based on region.
         """
-        logger.warning("Using mock predictions - model not loaded")
+        logger.warning(f"Using mock predictions for {self.region_code}")
 
-        now = datetime.now()
-        horizon = self.config.get("output_horizon", 96) if self.config else 96
+        tz = ZoneInfo(self.timezone)
+        now = datetime.now(tz)
+        horizon = 96  # 24 hours
+
+        # Region-specific base load scaling
+        if self.region_code == "SWISS_GRID":
+            base_load = 8500  # Swiss grid scale
+            variation = 2000
+        else:
+            # Indian grids typically smaller
+            base_load = 2500
+            variation = 800
 
         predictions = []
         for i in range(horizon):
             timestamp = now + timedelta(minutes=15 * i)
             hour = timestamp.hour + timestamp.minute / 60
 
-            # Swiss grid daily pattern: ~6000-11000 MW
-            # Peak at 12:00 and 19:00, valley at 04:00
-            base_load = 8500
-            daily_variation = 2000 * np.sin(2 * np.pi * (hour - 4) / 24)
-            noise = np.random.normal(0, 150)
-
+            # Daily pattern with regional peaks
+            if self.region_code == "SWISS_GRID":
+                # Swiss: peaks at 12:00 and 19:00
+                daily_variation = variation * np.sin(2 * np.pi * (hour - 4) / 24)
+            else:
+                # India: peak at 19:00-21:00 (evening)
+                daily_variation = variation * np.sin(2 * np.pi * (hour - 7) / 24)
+            
+            noise = np.random.normal(0, variation * 0.05)
             point = base_load + daily_variation + noise
-            margin = 500
+            margin = variation * 0.25
 
-            predictions.append(
-                {
-                    "timestamp": timestamp.isoformat(),
-                    "point": float(point),
-                    "q10": float(point - margin),
-                    "q90": float(point + margin),
-                }
-            )
+            predictions.append({
+                "timestamp": timestamp.isoformat(),
+                "point": float(point),
+                "q10": float(point - margin),
+                "q90": float(point + margin),
+            })
 
         return {
             "predictions": predictions,
             "metadata": {
                 "model_type": "mock",
+                "region_code": self.region_code,
+                "timezone": self.timezone,
                 "horizon_hours": horizon / 4,
                 "interval_minutes": 15,
                 "plant_type": plant_type,
                 "generated_at": now.isoformat(),
                 "confidence": 0.90,
-                "warning": "Using mock data - XGBoost model not loaded",
+                "warning": f"Using mock data - XGBoost model not loaded for {self.region_code}",
             },
         }
 
     def health_check(self) -> Dict:
         """Check model health and readiness"""
-        metrics = self.config.get("metrics", {}) if self.config else {}
-
+        status = self.registry.get_status(self.region_code)
+        
         return {
             "status": "healthy" if self.model_loaded else "degraded",
+            "region_code": self.region_code,
+            "timezone": self.timezone,
             "model_loaded": self.model_loaded,
-            "model_type": self.config.get("model_type", "unknown")
-            if self.config
-            else "unknown",
-            "test_mape": metrics.get("test_mape") if metrics else None,
-            "test_mae": metrics.get("test_mae") if metrics else None,
-            "coverage_90": metrics.get("coverage_90") if metrics else None,
-            "inference_time_ms": metrics.get("inference_time_ms") if metrics else None,
-            "model_path": str(MODEL_PATH),
-            "model_exists": MODEL_PATH.exists(),
-            "horizon_mape": self.config.get("horizon_mape") if self.config else None,
+            "model_status": status.get("status"),
+            "trained_at": status.get("trained_at"),
+            "metrics": status.get("metrics"),
+            "training_required": status.get("training_required", False),
         }
 
 
-# Global singleton instance
-_ml_service = None
+# =============================================================================
+# SERVICE FACTORY
+# =============================================================================
+
+# Cache of inference services per region
+_inference_services: Dict[str, MLInferenceService] = {}
+
+def get_ml_service(region_code: str = "SWISS_GRID") -> MLInferenceService:
+    """
+    Get or create ML inference service for a region.
+    
+    Args:
+        region_code: Region code (default: SWISS_GRID for backwards compatibility)
+    
+    Returns:
+        MLInferenceService instance for the region
+    """
+    global _inference_services
+    
+    if region_code not in _inference_services:
+        _inference_services[region_code] = MLInferenceService(region_code)
+    
+    return _inference_services[region_code]
 
 
-def get_ml_service() -> MLInferenceService:
-    """Get or create ML inference service singleton"""
-    global _ml_service
-    if _ml_service is None:
-        _ml_service = MLInferenceService()
-    return _ml_service
+def get_available_regions() -> List[str]:
+    """Get list of regions with available models"""
+    return get_model_registry().list_available_regions()
+
+
+def get_region_status(region_code: str) -> Dict[str, Any]:
+    """Get status for a specific region"""
+    return get_model_registry().get_status(region_code)

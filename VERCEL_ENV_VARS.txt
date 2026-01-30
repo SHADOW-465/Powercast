@@ -1,0 +1,30 @@
+# =============================================================================
+# Powercast AI - Vercel Environment Variables
+# Copy and paste these into your Vercel Project Settings
+# =============================================================================
+
+# --- Supabase Configuration ---
+
+SUPABASE_URL=https://qbwtbgajfawwuapyidaw.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFid3RiZ2FqZmF3d3VhcHlpZGF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2Nzg2OTYsImV4cCI6MjA4NTI1NDY5Nn0.jCxbvNi989LB0pqb4AcHV4U8hdH0XKJ4qJd3y5-d6Ko
+
+NEXT_PUBLIC_SUPABASE_URL=https://qbwtbgajfawwuapyidaw.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFid3RiZ2FqZmF3d3VhcHlpZGF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2Nzg2OTYsImV4cCI6MjA4NTI1NDY5Nn0.jCxbvNi989LB0pqb4AcHV4U8hdH0XKJ4qJd3y5-d6Ko
+
+# --- AI & LLM Configuration ---
+GOOGLE_GENERATIVE_AI_API_KEY=AIzaSyAn0ImCPAug3kPXWEGWK7mcymtySm39_ig
+
+# --- External Context APIs ---
+OPENWEATHER_API_KEY=3457f56952246d459d9b4cdf0cc50baf
+ENTSOE_API_KEY=your_entsoe_api_key
+
+# --- Feature Flags (Closed-Loop Learning) ---
+ENABLE_ADJUSTMENTS=true
+ENABLE_LEARNING=true
+
+# --- Application Settings ---
+ENVIRONMENT=production
+DEBUG=false
+API_TITLE=Powercast AI
+CORS_ORIGINS=["https://*.vercel.app", "http://localhost:3000"]
+LOG_LEVEL=INFO

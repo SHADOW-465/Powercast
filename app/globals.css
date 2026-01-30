@@ -1,0 +1,422 @@
+/* ============================================
+   POWERCAST AI - NEUMORPHIC DESIGN SYSTEM
+   ============================================ */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   THEME TOKENS - CRITICAL FOR TRANSITIONS
+   ============================================ 
+   RULE: NEVER use raw colors like #fff, #000, text-white, text-black
+   ALWAYS use semantic tokens: text-[var(--text-primary)], bg-[var(--background)]
+*/
+
+/* LIGHT THEME */
+:root,
+.light {
+  /* Surface Colors */
+  --background: oklch(0.94 0.01 240);      /* #e4ebf5 */
+  --background-secondary: oklch(0.91 0.01 240);
+  --surface: oklch(0.94 0.01 240);
+  --surface-elevated: oklch(0.96 0.01 240);
+  
+  /* Neumorphic Shadows - CRITICAL for soft UI */
+  --shadow-light: oklch(1.0 0 0);           /* #ffffff */
+  --shadow-dark: oklch(0.85 0.02 240);      /* #c8d0dc */
+  
+  /* Text Colors - EXHAUSTIVE LIST */
+  --text-primary: oklch(0.25 0.02 240);     /* #1e293b */
+  --text-secondary: oklch(0.45 0.02 240);   /* #475569 */
+  --text-muted: oklch(0.55 0.02 240);       /* #64748b */
+  --text-subtle: oklch(0.65 0.02 240);      /* #94a3b8 */
+  --text-inverted: oklch(0.98 0.01 240);    /* #f8fafc - for buttons */
+  
+  /* Accent Colors */
+  --accent-primary: oklch(0.60 0.20 250);   /* Blue */
+  --accent-primary-hover: oklch(0.55 0.22 250);
+  --accent-success: oklch(0.70 0.18 160);   /* Green */
+  --accent-warning: oklch(0.80 0.18 85);    /* Amber */
+  --accent-danger: oklch(0.60 0.22 25);     /* Red */
+  
+  /* Plant-Specific Colors */
+  --plant-solar: oklch(0.80 0.18 85);
+  --plant-solar-bg: oklch(0.95 0.05 85);
+  --plant-hydro: oklch(0.75 0.15 200);
+  --plant-hydro-bg: oklch(0.95 0.04 200);
+  --plant-nuclear: oklch(0.60 0.18 300);
+  --plant-nuclear-bg: oklch(0.95 0.04 300);
+  --plant-thermal: oklch(0.65 0.22 25);
+  --plant-thermal-bg: oklch(0.95 0.05 25);
+  --plant-wind: oklch(0.70 0.18 150);
+  --plant-wind-bg: oklch(0.95 0.04 150);
+  
+  /* Borders */
+  --border-subtle: oklch(0.90 0.01 240);
+  --border-default: oklch(0.85 0.02 240);
+  
+  /* Chart Colors */
+  --chart-grid: oklch(0.90 0.01 240);
+  --chart-axis: oklch(0.55 0.02 240);
+  --chart-tooltip-bg: oklch(1.0 0 0);
+  --chart-tooltip-border: oklch(0.90 0.01 240);
+
+  /* Legacy compatibility tokens (for existing shadcn components) */
+  --foreground: var(--text-primary);
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-elevated);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-primary);
+  --primary-foreground: var(--text-inverted);
+  --secondary: var(--background-secondary);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--background-secondary);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--background-secondary);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--accent-danger);
+  --destructive-foreground: var(--text-inverted);
+  --border: var(--border-default);
+  --input: var(--border-default);
+  --ring: var(--accent-primary);
+  --radius: 0.75rem;
+}
+
+/* DARK THEME */
+.dark {
+  /* Surface Colors */
+  --background: oklch(0.18 0.02 250);       /* #1a1d24 */
+  --background-secondary: oklch(0.22 0.02 250);
+  --surface: oklch(0.20 0.02 250);          /* #1e2229 */
+  --surface-elevated: oklch(0.25 0.02 250);
+  
+  /* Neumorphic Shadows - Adjusted for dark */
+  --shadow-light: oklch(0.25 0.02 250);     /* #252a33 */
+  --shadow-dark: oklch(0.10 0.02 250);      /* #12141a */
+  
+  /* Text Colors - MUST MATCH ALL LIGHT THEME TOKENS */
+  --text-primary: oklch(0.96 0.01 240);     /* #f1f5f9 */
+  --text-secondary: oklch(0.85 0.02 240);   /* #cbd5e1 */
+  --text-muted: oklch(0.70 0.02 240);       /* #94a3b8 */
+  --text-subtle: oklch(0.55 0.02 240);      /* #64748b */
+  --text-inverted: oklch(0.20 0.02 240);    /* #1e293b */
+  
+  /* Accent Colors (brighter for dark bg) */
+  --accent-primary: oklch(0.70 0.18 250);
+  --accent-primary-hover: oklch(0.75 0.16 250);
+  --accent-success: oklch(0.75 0.16 160);
+  --accent-warning: oklch(0.85 0.16 85);
+  --accent-danger: oklch(0.70 0.20 25);
+  
+  /* Plant-Specific Colors (brighter) */
+  --plant-solar: oklch(0.85 0.16 85);
+  --plant-solar-bg: oklch(0.25 0.06 85);
+  --plant-hydro: oklch(0.80 0.14 200);
+  --plant-hydro-bg: oklch(0.25 0.05 200);
+  --plant-nuclear: oklch(0.70 0.16 300);
+  --plant-nuclear-bg: oklch(0.25 0.05 300);
+  --plant-thermal: oklch(0.75 0.18 25);
+  --plant-thermal-bg: oklch(0.25 0.06 25);
+  --plant-wind: oklch(0.80 0.16 150);
+  --plant-wind-bg: oklch(0.25 0.05 150);
+  
+  /* Borders */
+  --border-subtle: oklch(0.28 0.02 250);
+  --border-default: oklch(0.32 0.02 250);
+  
+  /* Chart Colors */
+  --chart-grid: oklch(0.25 0.02 250);
+  --chart-axis: oklch(0.65 0.02 240);
+  --chart-tooltip-bg: oklch(0.22 0.02 250);
+  --chart-tooltip-border: oklch(0.30 0.02 250);
+
+  /* Legacy compatibility tokens */
+  --foreground: var(--text-primary);
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-elevated);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-primary);
+  --primary-foreground: var(--text-inverted);
+  --secondary: var(--background-secondary);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--background-secondary);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--background-secondary);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--accent-danger);
+  --destructive-foreground: var(--text-inverted);
+  --border: var(--border-default);
+  --input: var(--border-default);
+  --ring: var(--accent-primary);
+}
+
+/* ============================================
+   TAILWIND THEME INLINE CONFIG
+   ============================================ */
+
+@theme inline {
+  --font-sans: "Inter", "Inter Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  
+  /* Map CSS variables to Tailwind */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+}
+
+/* ============================================
+   NEUMORPHIC UTILITY CLASSES
+   ============================================ */
+
+/* Raised Card (default neumorphic) */
+.neu-raised {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 
+    8px 8px 16px var(--shadow-dark),
+    -8px -8px 16px var(--shadow-light);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.neu-raised:hover {
+  box-shadow: 
+    10px 10px 20px var(--shadow-dark),
+    -10px -10px 20px var(--shadow-light);
+}
+
+/* Small raised variant */
+.neu-raised-sm {
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: 
+    4px 4px 8px var(--shadow-dark),
+    -4px -4px 8px var(--shadow-light);
+}
+
+/* Flat with subtle shadow */
+.neu-flat {
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: 
+    4px 4px 8px var(--shadow-dark),
+    -4px -4px 8px var(--shadow-light);
+}
+
+/* Pressed/Inset (for inputs, active states) */
+.neu-inset {
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: 
+    inset 4px 4px 8px var(--shadow-dark),
+    inset -4px -4px 8px var(--shadow-light);
+}
+
+/* Pressed state for buttons */
+.neu-pressed {
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: 
+    inset 2px 2px 4px var(--shadow-dark),
+    inset -2px -2px 4px var(--shadow-light);
+}
+
+/* Convex (for circular buttons, toggles) */
+.neu-convex {
+  background: linear-gradient(
+    145deg,
+    var(--shadow-light),
+    var(--shadow-dark)
+  );
+  border-radius: 50%;
+}
+
+/* Concave (for circular indicators) */
+.neu-concave {
+  background: linear-gradient(
+    145deg,
+    var(--shadow-dark),
+    var(--shadow-light)
+  );
+  border-radius: 50%;
+}
+
+/* ============================================
+   THEME TRANSITION HANDLING
+   ============================================ */
+
+/* Default smooth transitions for theme-aware properties */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+
+/* Block transitions during theme switch to prevent flash */
+.theme-transitioning,
+.theme-transitioning * {
+  transition: none !important;
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    background-color: var(--background);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+
+  /* Ensure all text elements use semantic tokens */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  p {
+    color: var(--text-secondary);
+  }
+  
+  span, label {
+    color: inherit;
+  }
+
+  /* Override any Tailwind defaults that might break theme */
+  .text-foreground { color: var(--text-primary) !important; }
+  .text-muted-foreground { color: var(--text-muted) !important; }
+  .bg-background { background-color: var(--background) !important; }
+  .bg-card { background-color: var(--surface) !important; }
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-default) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--border-default);
+    border-radius: 3px;
+  }
+}
+
+/* ============================================
+   ANIMATION UTILITIES
+   ============================================ */
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================
+   FOCUS STYLES
+   ============================================ */
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+  
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+}
